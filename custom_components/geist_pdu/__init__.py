@@ -1,27 +1,31 @@
 """The Geist PDU integration."""
 from __future__ import annotations
 
-from typing import TypeAlias
+from typing import TYPE_CHECKING, TypeAlias
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
-from homeassistant.core import HomeAssistant
 
-from .const import DOMAIN
 from .coordinator import GeistPDUDataUpdateCoordinator
 
-PLATFORMS: list[Platform] = [Platform.SENSOR]
+if TYPE_CHECKING:
+    from homeassistant.core import HomeAssistant
+
+PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.SWITCH, Platform.BUTTON]
 
 GeistPDUConfigEntry: TypeAlias = ConfigEntry[GeistPDUDataUpdateCoordinator]
+
+async def async_setup(hass: HomeAssistant, config: dict) -> bool:
+    """Set up the Geist PDU component."""
+    return True
 
 async def async_setup_entry(hass: HomeAssistant, entry: GeistPDUConfigEntry) -> bool:
     """Set up Geist PDU from a config entry."""
     coordinator = GeistPDUDataUpdateCoordinator(hass, entry)
-    
-    # In a real implementation, we would call:
-    # await coordinator.async_config_entry_first_refresh()
-    # But since we don't have the API logic yet, we'll just store it.
-    
+
+    # Perform first refresh
+    await coordinator.async_config_entry_first_refresh()
+
     entry.runtime_data = coordinator
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)

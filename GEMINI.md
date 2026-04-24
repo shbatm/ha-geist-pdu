@@ -1,12 +1,11 @@
 # Geist PDU Integration — Development Context
 
 ## Project Goals
-Implement a modern Home Assistant integration for Geist rack-mount PDUs based on the requirements in:
-https://gitea.bond.casa/shbatm/infrastructure-docs/issues/44
+Implement a modern Home Assistant integration for Geist rack-mount PDUs.
 
 ## Core Mandates
 - **Bronze IQS Compliance:** Strictly follow the rules in `BRONZE_IQS_RULES.md`.
-- **Modern Patterns:**
+- **Modern Patterns:** 
   - Use `DataUpdateCoordinator` for polling (30s default).
   - Store coordinator in `entry.runtime_data`.
   - Use `_attr_has_entity_name = True` for all entities.
@@ -27,7 +26,6 @@ https://gitea.bond.casa/shbatm/infrastructure-docs/issues/44
 - **Translations:** Maintain `strings.json` and `translations/en.json` for all UI elements and error keys.
 
 ## Development Environment
-- **Working Directory:** `~/src/ha-geist-pdu`
 - **Container Path:** `/workspaces/ha-geist-pdu`
 - **Python Venv:** `/opt/venv` (inside container)
 
