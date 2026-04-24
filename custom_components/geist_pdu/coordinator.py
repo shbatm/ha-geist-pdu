@@ -4,8 +4,10 @@ from __future__ import annotations
 from http import HTTPStatus
 from typing import TYPE_CHECKING, Any
 
+import aiohttp
 import async_timeout
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME, CONF_VERIFY_SSL
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
@@ -77,3 +79,40 @@ class GeistPDUDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             if isinstance(err, UpdateFailed):
                 raise
             raise UpdateFailed(f"Communication error: {err}") from err
+
+    async def async_send_command(self, outlet_id: str, action: str) -> None:
+        """Send a control command to the PDU."""
+        if not self.device_id:
+            raise HomeAssistantError("Device ID not populated")
+
+        host = self.entry.data[CONF_HOST]
+        username = self.entry.data[CONF_USERNAME]
+        password = self.entry.data[CONF_PASSWORD]
+
+        url = f"https://{host}/api/dev/{self.device_id}/outlet/{outlet_id}"
+        payload = {
+            "username": username,
+            "password": password,
+            "cmd": "control",
+            "data": {"action": action, "delay": False},
+        }
+
+        session = async_get_clientsession(
+            self.hass, verify_ssl=self.entry.data.get(CONF_VERIFY_SSL, False)
+        )
+
+        try:
+            async with async_timeout.timeout(10):
+                response = await session.post(url, json=payload)
+                if response.status != HTTPStatus.OK:
+                    raise HomeAssistantError(f"HTTP error sending {action} to outlet {outlet_id}: {response.status}")
+
+                res_json = await response.json()
+                if res_json.get("status") == "fail":
+                    raise HomeAssistantError(f"API failure sending {action} to outlet {outlet_id}: {res_json.get('message')}")
+
+                # Refresh data to reflect changes
+                await self.async_request_refresh()
+
+        except (aiohttp.ClientError, async_timeout.TimeoutError) as err:
+            raise HomeAssistantError(f"Communication error sending {action} to outlet {outlet_id}: {err}") from err

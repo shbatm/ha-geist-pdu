@@ -27,6 +27,15 @@ if TYPE_CHECKING:
     from . import GeistPDUConfigEntry
     from .coordinator import GeistPDUDataUpdateCoordinator
 
+# Measurement Key Mappings (from Geist API spec/observed data):
+# 0: Real Power (W)
+# 1: Apparent Power (VA)
+# 2: Power Factor (%)
+# 3: Total Energy (kWh)
+# 4: Current (A)
+# 8: Outlet Real Power (W)
+# 11: Outlet Energy (kWh)
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: GeistPDUConfigEntry,
@@ -39,7 +48,7 @@ async def async_setup_entry(
         return
 
     entities: list[GeistPDUSensor] = []
-    data = coordinator.data[device_id]
+    data = coordinator.data.get(device_id, {})
 
     # --- Totals ---
     total_data = data.get("entity", {}).get("total0", {})
@@ -96,13 +105,13 @@ async def async_setup_entry(
         ])
 
     # --- Breakers ---
-    for b_idx in range(4): # Check for up to 4 breakers
-        b_key = f"breaker{b_idx}"
-        if b_key in data.get("entity", {}):
+    # Dynamically find all breakers
+    for ent_key, ent_data in data.get("entity", {}).items():
+        if ent_key.startswith("breaker") and "measurement" in ent_data:
             entities.append(
-                GeistPDUSensor(coordinator, b_key, "4", SensorEntityDescription(
-                    key=f"{device_id}_{b_key}_current",
-                    name=f"Circuit {b_idx + 1} Current",
+                GeistPDUSensor(coordinator, ent_key, "4", SensorEntityDescription(
+                    key=f"{device_id}_{ent_key}_current",
+                    name=f"Circuit {ent_key.replace('breaker', '')} Current",
                     native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
                     device_class=SensorDeviceClass.CURRENT,
                     state_class=SensorStateClass.MEASUREMENT,
@@ -112,7 +121,15 @@ async def async_setup_entry(
     # --- Outlets ---
     outlets = data.get("outlet", {})
     for o_idx, o_data in outlets.items():
-        label = o_data.get("label", f"Outlet {int(o_idx) + 1}")
+        if not o_data:
+            continue
+
+        try:
+            label_idx = int(o_idx) + 1
+        except ValueError:
+            label_idx = o_idx
+
+        label = o_data.get("label", f"Outlet {label_idx}")
         entities.extend([
             GeistPDUSensor(coordinator, f"outlet/{o_idx}", "8", SensorEntityDescription(
                 key=f"{device_id}_outlet_{o_idx}_power",
@@ -157,6 +174,8 @@ class GeistPDUSensor(GeistPDUEntity, SensorEntity):
             return None
 
         data = self.coordinator.data.get(device_id, {})
+        if not data:
+            return None
 
         # Path is either 'entity/total0' or 'outlet/0'
         parts = self._path.split("/")
@@ -167,10 +186,13 @@ class GeistPDUSensor(GeistPDUEntity, SensorEntity):
             # outlet case
             val_data = data.get(parts[0], {}).get(parts[1], {})
 
+        if not val_data:
+            return None
+
         val = val_data.get("measurement", {}).get(self._measurement_key, {}).get("value")
         if val is not None:
             try:
                 return float(val)
-            except ValueError:
+            except (ValueError, TypeError):
                 return None
         return None
