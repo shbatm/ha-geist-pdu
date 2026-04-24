@@ -27,7 +27,7 @@ class GeistPDUEntity(CoordinatorEntity[GeistPDUDataUpdateCoordinator]):
             model=sys_info.get("model", "Upgradable rPDU"),
             sw_version=sys_info.get("version"),
             serial_number=sys_info.get("serialNumber"),
-            configuration_url=coordinator.entry.data.get(CONF_URL),
+            configuration_url=coordinator.entry.data[CONF_URL],
         )
 
 class GeistPDUOutletEntity(GeistPDUEntity):

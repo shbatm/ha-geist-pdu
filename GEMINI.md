@@ -5,10 +5,13 @@ Implement a modern Home Assistant integration for Geist rack-mount PDUs.
 
 ## Core Mandates
 - **Bronze IQS Compliance:** Strictly follow the rules in `BRONZE_IQS_RULES.md`.
-- **Modern Patterns:** 
+- **Modern Patterns:**
   - Use `DataUpdateCoordinator` for polling (30s default).
   - Store coordinator in `entry.runtime_data`.
   - Use `_attr_has_entity_name = True` for all entities.
+  - **Sub-devices:** Use `DeviceInfo` with `via_device` for components like individual outlets.
+  - **Action Feedback:** Raise `HomeAssistantError` on service call failures for UI feedback.
+  - **Concurrent Fetching:** Use `asyncio.gather` for independent API calls during polling.
 - **Async First:** All network communication must be non-blocking (use `aiohttp` via `async_get_clientsession`).
 - **Immediate State:** On service calls/toggles, update the coordinator data immediately using `async_set_updated_data`.
 
@@ -25,6 +28,8 @@ Implement a modern Home Assistant integration for Geist rack-mount PDUs.
 - **Options Flow:** Implement `OptionsFlow` for runtime-configurable settings (e.g., polling interval).
 - **Translations:** Maintain `strings.json` and `translations/en.json` for all UI elements and error keys.
 
+## Detailed Context
+- [Geist PDU Implementation Details](custom_components/geist_pdu/GEMINI.md) — API polling strategy and alarm handling.
 ## Development Environment
 - **Container Path:** `/workspaces/ha-geist-pdu`
 - **Python Venv:** `/opt/venv` (inside container)

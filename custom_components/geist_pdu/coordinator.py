@@ -38,8 +38,7 @@ class GeistPDUDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         session = async_get_clientsession(
             self.hass, verify_ssl=self.entry.data.get(CONF_VERIFY_SSL, False)
         )
-        # Use url if available, else fallback to host (migration safety)
-        base_url = self.entry.data.get(CONF_URL, f"https://{self.entry.data.get('host')}")
+        base_url = self.entry.data[CONF_URL]
         username = self.entry.data[CONF_USERNAME]
         password = self.entry.data[CONF_PASSWORD]
 
@@ -121,7 +120,7 @@ class GeistPDUDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if not self.device_id:
             raise HomeAssistantError("Device ID not populated")
 
-        base_url = self.entry.data.get(CONF_URL, f"https://{self.entry.data.get('host')}")
+        base_url = self.entry.data[CONF_URL]
         username = self.entry.data[CONF_USERNAME]
         password = self.entry.data[CONF_PASSWORD]
 
