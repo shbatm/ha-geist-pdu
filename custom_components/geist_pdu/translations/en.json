@@ -3,7 +3,10 @@
     "step": {
       "user": {
         "data": {
-          "host": "Host"
+          "host": "Host",
+          "username": "Username",
+          "password": "Password",
+          "verify_ssl": "Verify SSL certificate"
         }
       }
     },

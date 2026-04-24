@@ -55,4 +55,4 @@ combine-as-imports = true
 split-on-trailing-comma = false
 
 [tool.ruff.lint.per-file-ignores]
-"custom_components/sharedcam/__init__.py" = ["T201"]
+"custom_components/geist_pdu/__init__.py" = ["T201"]
