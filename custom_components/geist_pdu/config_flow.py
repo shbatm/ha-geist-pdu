@@ -1,6 +1,7 @@
 """Config flow for Geist PDU integration."""
 from __future__ import annotations
 
+import asyncio
 from http import HTTPStatus
 from typing import TYPE_CHECKING, Any
 
@@ -57,11 +58,11 @@ async def _validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str
             device_info = device_data[device_id]
 
             return {
-                "title": device_info.get("name", data[CONF_HOST]),
+                "title": device_info.get("label", device_info.get("name", data[CONF_HOST])),
                 "unique_id": device_id,
             }
 
-    except (aiohttp.ClientError, async_timeout.TimeoutError) as err:
+    except (aiohttp.ClientError, asyncio.TimeoutError, async_timeout.TimeoutError) as err:
         LOGGER.error("Error connecting to Geist PDU: %s", err)
         raise CannotConnect from err
 
@@ -83,7 +84,7 @@ class GeistPDUConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             except InvalidAuth:
                 errors["base"] = "invalid_auth"
             except Exception:  # noqa: BLE001
-                LOGGER.exception("Unexpected exception")
+                LOGGER.exception("Unexpected exception during config flow validation")
                 errors["base"] = "unknown"
             else:
                 await self.async_set_unique_id(info["unique_id"])

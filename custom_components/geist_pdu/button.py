@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 from homeassistant.components.button import ButtonEntity
 
-from .entity import GeistPDUEntity
+from .entity import GeistPDUOutletEntity
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -35,26 +35,22 @@ async def async_setup_entry(
 
     async_add_entities(entities)
 
-class GeistPDUOutletButton(GeistPDUEntity, ButtonEntity):
+class GeistPDUOutletButton(GeistPDUOutletEntity, ButtonEntity):
     """Representation of a Geist PDU outlet control button."""
+
+    _attr_entity_registry_enabled_default = False
 
     def __init__(self, coordinator: GeistPDUDataUpdateCoordinator, outlet_id: str, action: str) -> None:
         """Initialize the button."""
-        super().__init__(coordinator)
-        self._outlet_id = outlet_id
+        super().__init__(coordinator, outlet_id)
         self._action = action
         self._attr_unique_id = f"{coordinator.device_id}_outlet_{outlet_id}_{action}_button"
 
-        # Get label from initial data if possible
-        device_id = coordinator.device_id
-        outlet_data = coordinator.data.get(device_id, {}).get("outlet", {}).get(outlet_id, {})
-        label = outlet_data.get("label", f"Outlet {int(outlet_id) + 1}")
-
         if action == "reboot":
-            self._attr_name = f"{label} Reboot"
+            self._attr_name = "Reboot"
             self._attr_icon = "mdi:restart"
         else:
-            self._attr_name = f"{label} Cancel"
+            self._attr_name = "Cancel"
             self._attr_icon = "mdi:cancel"
 
     async def async_press(self) -> None:
