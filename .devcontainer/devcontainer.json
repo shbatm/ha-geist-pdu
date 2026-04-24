@@ -1,0 +1,35 @@
+{
+	"name": "ha-geist-pdu-dev",
+	"build": {
+		"dockerfile": "Dockerfile",
+		"context": ".."
+	},
+	"appPort": [
+		"9123:8123"
+	],
+	"remoteEnv": {
+		"PATH": "/workspaces/ha-geist-pdu/.homeassistant:${containerEnv:PATH}"
+	},
+	"postCreateCommand": "bash .devcontainer/scripts/setup_ha_test_env.sh",
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"ms-python.python",
+				"github.vscode-pull-request-github",
+				"ms-python.vscode-pylance"
+			],
+			"settings": {
+				"files.eol": "\n",
+				"editor.tabSize": 4,
+				"python.pythonPath": "/opt/venv/bin/python",
+				"editor.formatOnPaste": false,
+				"editor.formatOnSave": true,
+				"editor.formatOnType": true,
+				"files.trimTrailingWhitespace": true,
+				"files.associations": {
+					"*.yaml": "home-assistant"
+				}
+			}
+		}
+	}
+}
