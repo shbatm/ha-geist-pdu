@@ -1,6 +1,5 @@
 {
   "name": "Geist PDU",
-  "iot_class": "local_polling",
   "render_readme": true,
   "homeassistant": "2026.4.0"
 }
