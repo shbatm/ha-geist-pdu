@@ -1,7 +1,7 @@
 """Support for Geist PDU sensors."""
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -18,7 +18,7 @@ from homeassistant.const import (
     UnitOfPower,
 )
 
-from .entity import GeistPDUEntity
+from .entity import GeistPDUEntity, GeistPDUOutletEntity
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -26,15 +26,6 @@ if TYPE_CHECKING:
 
     from . import GeistPDUConfigEntry
     from .coordinator import GeistPDUDataUpdateCoordinator
-
-# Measurement Key Mappings (from Geist API spec/observed data):
-# 0: Real Power (W)
-# 1: Apparent Power (VA)
-# 2: Power Factor (%)
-# 3: Total Energy (kWh)
-# 4: Current (A)
-# 8: Outlet Real Power (W)
-# 11: Outlet Energy (kWh)
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -47,12 +38,28 @@ async def async_setup_entry(
     if not device_id:
         return
 
-    entities: list[GeistPDUSensor] = []
-    data = coordinator.data.get(device_id, {})
+    entities: list[SensorEntity] = []
+    dev_data = coordinator.data.get("dev", {}).get(device_id, {})
+
+    # --- System Alarms/Warnings ---
+    entities.extend([
+        GeistPDUSystemSensor(coordinator, "alarmCount", SensorEntityDescription(
+            key=f"{device_id}_alarm_count",
+            name="Alarms",
+            icon="mdi:alert",
+            state_class=SensorStateClass.MEASUREMENT,
+        )),
+        GeistPDUSystemSensor(coordinator, "warnCount", SensorEntityDescription(
+            key=f"{device_id}_warning_count",
+            name="Warnings",
+            icon="mdi:alert-outline",
+            state_class=SensorStateClass.MEASUREMENT,
+        )),
+    ])
 
     # --- Totals ---
-    total_data = data.get("entity", {}).get("total0", {})
-    if total_data:
+    entity_data = dev_data.get("entity", {})
+    if "total0" in entity_data:
         entities.extend([
             GeistPDUSensor(coordinator, "total0", "0", SensorEntityDescription(
                 key=f"{device_id}_total_power",
@@ -85,8 +92,7 @@ async def async_setup_entry(
         ])
 
     # --- Phase ---
-    phase_data = data.get("entity", {}).get("phase0", {})
-    if phase_data:
+    if "phase0" in entity_data:
         entities.extend([
             GeistPDUSensor(coordinator, "phase0", "0", SensorEntityDescription(
                 key=f"{device_id}_voltage",
@@ -105,9 +111,8 @@ async def async_setup_entry(
         ])
 
     # --- Breakers ---
-    # Dynamically find all breakers
-    for ent_key, ent_data in data.get("entity", {}).items():
-        if ent_key.startswith("breaker") and "measurement" in ent_data:
+    for ent_key, ent_val in entity_data.items():
+        if ent_key.startswith("breaker") and "measurement" in ent_val:
             entities.append(
                 GeistPDUSensor(coordinator, ent_key, "4", SensorEntityDescription(
                     key=f"{device_id}_{ent_key}_current",
@@ -119,35 +124,85 @@ async def async_setup_entry(
             )
 
     # --- Outlets ---
-    outlets = data.get("outlet", {})
-    for o_idx, o_data in outlets.items():
-        if not o_data:
-            continue
-
-        try:
-            label_idx = int(o_idx) + 1
-        except ValueError:
-            label_idx = o_idx
-
-        label = o_data.get("label", f"Outlet {label_idx}")
+    outlets = dev_data.get("outlet", {})
+    for o_idx in outlets:
         entities.extend([
-            GeistPDUSensor(coordinator, f"outlet/{o_idx}", "8", SensorEntityDescription(
+            GeistPDUOutletSensor(coordinator, o_idx, "8", SensorEntityDescription(
                 key=f"{device_id}_outlet_{o_idx}_power",
-                name=f"{label} Power",
+                name="Real Power",
                 native_unit_of_measurement=UnitOfPower.WATT,
                 device_class=SensorDeviceClass.POWER,
                 state_class=SensorStateClass.MEASUREMENT,
             )),
-            GeistPDUSensor(coordinator, f"outlet/{o_idx}", "11", SensorEntityDescription(
+            GeistPDUOutletSensor(coordinator, o_idx, "9", SensorEntityDescription(
+                key=f"{device_id}_outlet_{o_idx}_apparent_power",
+                name="Apparent Power",
+                native_unit_of_measurement=UnitOfApparentPower.VOLT_AMPERE,
+                device_class=SensorDeviceClass.APPARENT_POWER,
+                state_class=SensorStateClass.MEASUREMENT,
+            )),
+            GeistPDUOutletSensor(coordinator, o_idx, "10", SensorEntityDescription(
+                key=f"{device_id}_outlet_{o_idx}_power_factor",
+                name="Power Factor",
+                native_unit_of_measurement=PERCENTAGE,
+                device_class=SensorDeviceClass.POWER_FACTOR,
+                state_class=SensorStateClass.MEASUREMENT,
+            )),
+            GeistPDUOutletSensor(coordinator, o_idx, "11", SensorEntityDescription(
                 key=f"{device_id}_outlet_{o_idx}_energy",
-                name=f"{label} Energy",
+                name="Energy",
                 native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
                 device_class=SensorDeviceClass.ENERGY,
                 state_class=SensorStateClass.TOTAL_INCREASING,
             )),
+            GeistPDUOutletSensor(coordinator, o_idx, "0", SensorEntityDescription(
+                key=f"{device_id}_outlet_{o_idx}_voltage",
+                name="Voltage",
+                native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+                device_class=SensorDeviceClass.VOLTAGE,
+                state_class=SensorStateClass.MEASUREMENT,
+            )),
+            GeistPDUOutletSensor(coordinator, o_idx, "4", SensorEntityDescription(
+                key=f"{device_id}_outlet_{o_idx}_current",
+                name="Current",
+                native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
+                device_class=SensorDeviceClass.CURRENT,
+                state_class=SensorStateClass.MEASUREMENT,
+            )),
         ])
 
     async_add_entities(entities)
+
+class GeistPDUSystemSensor(GeistPDUEntity, SensorEntity):
+    """Representation of a Geist PDU system-wide sensor."""
+
+    def __init__(self, coordinator: GeistPDUDataUpdateCoordinator, state_key: str, description: SensorEntityDescription) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator)
+        self.entity_description = description
+        self._state_key = state_key
+        self._attr_unique_id = description.key
+
+    @property
+    def native_value(self) -> int | None:
+        """Return the count of alarms or warnings."""
+        return self.coordinator.data.get("state", {}).get(self._state_key)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        """Return alarm trigger details."""
+        alarms = self.coordinator.data.get("alarms", {})
+        if not alarms:
+            return None
+
+        # Filter triggers relevant to this sensor type (alarm vs warning)
+        severity = "alarm" if "alarm" in self._state_key.lower() else "warning"
+        relevant = [v for v in alarms.values() if v.get("severity") == severity]
+
+        if not relevant:
+            return None
+
+        return {"triggers": relevant}
 
 class GeistPDUSensor(GeistPDUEntity, SensorEntity):
     """Representation of a Geist PDU sensor."""
@@ -173,19 +228,44 @@ class GeistPDUSensor(GeistPDUEntity, SensorEntity):
         if not device_id:
             return None
 
-        data = self.coordinator.data.get(device_id, {})
-        if not data:
+        dev_data = self.coordinator.data.get("dev", {}).get(device_id, {})
+        val_data = dev_data.get("entity", {}).get(self._path, {})
+        if not val_data:
             return None
 
-        # Path is either 'entity/total0' or 'outlet/0'
-        parts = self._path.split("/")
-        if len(parts) == 1:
-            # entity case (e.g. breaker0)
-            val_data = data.get("entity", {}).get(parts[0], {})
-        else:
-            # outlet case
-            val_data = data.get(parts[0], {}).get(parts[1], {})
+        val = val_data.get("measurement", {}).get(self._measurement_key, {}).get("value")
+        if val is not None:
+            try:
+                return float(val)
+            except (ValueError, TypeError):
+                return None
+        return None
 
+class GeistPDUOutletSensor(GeistPDUOutletEntity, SensorEntity):
+    """Representation of a Geist PDU outlet sensor."""
+
+    def __init__(
+        self,
+        coordinator: GeistPDUDataUpdateCoordinator,
+        outlet_id: str,
+        measurement_key: str,
+        description: SensorEntityDescription,
+    ) -> None:
+        """Initialize the outlet sensor."""
+        super().__init__(coordinator, outlet_id)
+        self.entity_description = description
+        self._measurement_key = measurement_key
+        self._attr_unique_id = description.key
+
+    @property
+    def native_value(self) -> float | None:
+        """Return the state of the sensor."""
+        device_id = self.coordinator.device_id
+        if not device_id:
+            return None
+
+        dev_data = self.coordinator.data.get("dev", {}).get(device_id, {})
+        val_data = dev_data.get("outlet", {}).get(self._outlet_id, {})
         if not val_data:
             return None
 
