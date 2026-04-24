@@ -7,12 +7,12 @@ from typing import TYPE_CHECKING, Any
 
 import aiohttp
 import async_timeout
-from homeassistant.const import CONF_PASSWORD, CONF_USERNAME, CONF_VERIFY_SSL
+from homeassistant.const import CONF_PASSWORD, CONF_URL, CONF_USERNAME, CONF_VERIFY_SSL
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .const import CONF_HOST, DOMAIN, LOGGER, SCAN_INTERVAL
+from .const import DOMAIN, LOGGER, SCAN_INTERVAL
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -37,7 +37,7 @@ class GeistPDUDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         session = async_get_clientsession(
             self.hass, verify_ssl=self.entry.data.get(CONF_VERIFY_SSL, False)
         )
-        host = self.entry.data[CONF_HOST]
+        base_url = self.entry.data[CONF_URL]
         username = self.entry.data[CONF_USERNAME]
         password = self.entry.data[CONF_PASSWORD]
 
@@ -46,8 +46,8 @@ class GeistPDUDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         try:
             async with async_timeout.timeout(10):
                 # Run requests in parallel to save time
-                sys_task = session.post(f"https://{host}/api/sys", json=payload)
-                dev_task = session.post(f"https://{host}/api/dev", json=payload)
+                sys_task = session.post(f"{base_url}/api/sys", json=payload)
+                dev_task = session.post(f"{base_url}/api/dev", json=payload)
 
                 responses = await asyncio.gather(sys_task, dev_task, return_exceptions=True)
 
@@ -90,11 +90,11 @@ class GeistPDUDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if not self.device_id:
             raise HomeAssistantError("Device ID not populated")
 
-        host = self.entry.data[CONF_HOST]
+        base_url = self.entry.data[CONF_URL]
         username = self.entry.data[CONF_USERNAME]
         password = self.entry.data[CONF_PASSWORD]
 
-        url = f"https://{host}/api/dev/{self.device_id}/outlet/{outlet_id}"
+        url = f"{base_url}/api/dev/{self.device_id}/outlet/{outlet_id}"
         payload = {
             "username": username,
             "password": password,

@@ -7,4 +7,4 @@ LOGGER = logging.getLogger(__package__)
 
 SCAN_INTERVAL = timedelta(seconds=30)
 
-CONF_HOST = "host"
+CONF_URL = "url"

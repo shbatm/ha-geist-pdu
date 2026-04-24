@@ -4,7 +4,7 @@ from __future__ import annotations
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN
+from .const import CONF_URL, DOMAIN
 from .coordinator import GeistPDUDataUpdateCoordinator
 
 
@@ -20,7 +20,6 @@ class GeistPDUEntity(CoordinatorEntity[GeistPDUDataUpdateCoordinator]):
         sys_info = coordinator.device_info
         dev_data = coordinator.data.get(device_id, {})
 
-        # Main PDU Device Info
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, device_id)},
             name=dev_data.get("label", sys_info.get("label", "Geist PDU")),
@@ -28,7 +27,7 @@ class GeistPDUEntity(CoordinatorEntity[GeistPDUDataUpdateCoordinator]):
             model=sys_info.get("model", "Upgradable rPDU"),
             sw_version=sys_info.get("version"),
             serial_number=sys_info.get("serialNumber"),
-            configuration_url=f"https://{coordinator.entry.data['host']}",
+            configuration_url=coordinator.entry.data[CONF_URL],
         )
 
 class GeistPDUOutletEntity(GeistPDUEntity):
