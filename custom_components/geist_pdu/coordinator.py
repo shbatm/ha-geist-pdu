@@ -38,7 +38,7 @@ class GeistPDUDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         session = async_get_clientsession(
             self.hass, verify_ssl=self.entry.data.get(CONF_VERIFY_SSL, False)
         )
-        # Use host if url not yet available (migration/fallback)
+        # Use url if available, else fallback to host (migration safety)
         base_url = self.entry.data.get(CONF_URL, f"https://{self.entry.data.get('host')}")
         username = self.entry.data[CONF_USERNAME]
         password = self.entry.data[CONF_PASSWORD]

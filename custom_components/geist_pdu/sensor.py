@@ -27,6 +27,14 @@ if TYPE_CHECKING:
     from . import GeistPDUConfigEntry
     from .coordinator import GeistPDUDataUpdateCoordinator
 
+# Measurement Key Mappings:
+# 0: Voltage (V)
+# 4: Current (A)
+# 8: Real Power (W)
+# 9: Apparent Power (VA)
+# 10: Power Factor (%)
+# 11: Energy (kWh)
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: GeistPDUConfigEntry,
