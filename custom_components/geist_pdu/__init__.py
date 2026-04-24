@@ -15,10 +15,6 @@ PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.SWITCH, Platform.BUTTON]
 
 GeistPDUConfigEntry: TypeAlias = ConfigEntry[GeistPDUDataUpdateCoordinator]
 
-async def async_setup(hass: HomeAssistant, config: dict) -> bool:
-    """Set up the Geist PDU component."""
-    return True
-
 async def async_setup_entry(hass: HomeAssistant, entry: GeistPDUConfigEntry) -> bool:
     """Set up Geist PDU from a config entry."""
     coordinator = GeistPDUDataUpdateCoordinator(hass, entry)
