@@ -25,8 +25,8 @@ async def async_setup_entry(
     if not device_id:
         return
 
-    data = coordinator.data[device_id]
-    outlets = data.get("outlet", {})
+    dev_data = coordinator.data.get("dev", {}).get(device_id, {})
+    outlets = dev_data.get("outlet", {})
 
     entities = []
     for o_idx in outlets:

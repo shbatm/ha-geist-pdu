@@ -1,7 +1,7 @@
 """Support for Geist PDU sensors."""
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -47,11 +47,27 @@ async def async_setup_entry(
         return
 
     entities: list[SensorEntity] = []
-    data = coordinator.data.get(device_id, {})
+    dev_data = coordinator.data.get("dev", {}).get(device_id, {})
+
+    # --- System Alarms/Warnings ---
+    entities.extend([
+        GeistPDUSystemSensor(coordinator, "alarmCount", SensorEntityDescription(
+            key=f"{device_id}_alarm_count",
+            name="Alarms",
+            icon="mdi:alert",
+            state_class=SensorStateClass.MEASUREMENT,
+        )),
+        GeistPDUSystemSensor(coordinator, "warnCount", SensorEntityDescription(
+            key=f"{device_id}_warning_count",
+            name="Warnings",
+            icon="mdi:alert-outline",
+            state_class=SensorStateClass.MEASUREMENT,
+        )),
+    ])
 
     # --- Totals ---
-    total_data = data.get("entity", {}).get("total0", {})
-    if total_data:
+    entity_data = dev_data.get("entity", {})
+    if "total0" in entity_data:
         entities.extend([
             GeistPDUSensor(coordinator, "total0", "0", SensorEntityDescription(
                 key=f"{device_id}_total_power",
@@ -84,8 +100,7 @@ async def async_setup_entry(
         ])
 
     # --- Phase ---
-    phase_data = data.get("entity", {}).get("phase0", {})
-    if phase_data:
+    if "phase0" in entity_data:
         entities.extend([
             GeistPDUSensor(coordinator, "phase0", "0", SensorEntityDescription(
                 key=f"{device_id}_voltage",
@@ -104,8 +119,8 @@ async def async_setup_entry(
         ])
 
     # --- Breakers ---
-    for ent_key, ent_data in data.get("entity", {}).items():
-        if ent_key.startswith("breaker") and "measurement" in ent_data:
+    for ent_key, ent_val in entity_data.items():
+        if ent_key.startswith("breaker") and "measurement" in ent_val:
             entities.append(
                 GeistPDUSensor(coordinator, ent_key, "4", SensorEntityDescription(
                     key=f"{device_id}_{ent_key}_current",
@@ -117,7 +132,7 @@ async def async_setup_entry(
             )
 
     # --- Outlets ---
-    outlets = data.get("outlet", {})
+    outlets = dev_data.get("outlet", {})
     for o_idx in outlets:
         entities.extend([
             GeistPDUOutletSensor(coordinator, o_idx, "8", SensorEntityDescription(
@@ -166,6 +181,37 @@ async def async_setup_entry(
 
     async_add_entities(entities)
 
+class GeistPDUSystemSensor(GeistPDUEntity, SensorEntity):
+    """Representation of a Geist PDU system-wide sensor."""
+
+    def __init__(self, coordinator: GeistPDUDataUpdateCoordinator, state_key: str, description: SensorEntityDescription) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator)
+        self.entity_description = description
+        self._state_key = state_key
+        self._attr_unique_id = description.key
+
+    @property
+    def native_value(self) -> int | None:
+        """Return the count of alarms or warnings."""
+        return self.coordinator.data.get("state", {}).get(self._state_key)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        """Return alarm trigger details."""
+        alarms = self.coordinator.data.get("alarms", {})
+        if not alarms:
+            return None
+
+        # Filter triggers relevant to this sensor type (alarm vs warning)
+        severity = "alarm" if "alarm" in self._state_key.lower() else "warning"
+        relevant = [v for v in alarms.values() if v.get("severity") == severity]
+
+        if not relevant:
+            return None
+
+        return {"triggers": relevant}
+
 class GeistPDUSensor(GeistPDUEntity, SensorEntity):
     """Representation of a Geist PDU sensor."""
 
@@ -190,12 +236,8 @@ class GeistPDUSensor(GeistPDUEntity, SensorEntity):
         if not device_id:
             return None
 
-        data = self.coordinator.data.get(device_id, {})
-        if not data:
-            return None
-
-        # Path is either 'total0' or 'breaker0' etc.
-        val_data = data.get("entity", {}).get(self._path, {})
+        dev_data = self.coordinator.data.get("dev", {}).get(device_id, {})
+        val_data = dev_data.get("entity", {}).get(self._path, {})
         if not val_data:
             return None
 
@@ -230,11 +272,8 @@ class GeistPDUOutletSensor(GeistPDUOutletEntity, SensorEntity):
         if not device_id:
             return None
 
-        data = self.coordinator.data.get(device_id, {})
-        if not data:
-            return None
-
-        val_data = data.get("outlet", {}).get(self._outlet_id, {})
+        dev_data = self.coordinator.data.get("dev", {}).get(device_id, {})
+        val_data = dev_data.get("outlet", {}).get(self._outlet_id, {})
         if not val_data:
             return None
 

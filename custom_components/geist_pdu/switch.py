@@ -25,8 +25,8 @@ async def async_setup_entry(
     if not device_id:
         return
 
-    data = coordinator.data[device_id]
-    outlets = data.get("outlet", {})
+    dev_data = coordinator.data.get("dev", {}).get(device_id, {})
+    outlets = dev_data.get("outlet", {})
 
     async_add_entities([
         GeistPDUOutletSwitch(coordinator, o_idx)
@@ -49,7 +49,8 @@ class GeistPDUOutletSwitch(GeistPDUOutletEntity, SwitchEntity):
         if not device_id:
             return None
 
-        outlet_data = self.coordinator.data.get(device_id, {}).get("outlet", {}).get(self._outlet_id, {})
+        dev_data = self.coordinator.data.get("dev", {}).get(device_id, {})
+        outlet_data = dev_data.get("outlet", {}).get(self._outlet_id, {})
         state = outlet_data.get("state")
         return state in ("on", "off2on")
 

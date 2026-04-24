@@ -31,6 +31,7 @@ class GeistPDUDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.entry = entry
         self.device_id: str | None = None
         self.device_info: dict[str, Any] = {}
+        self.alarm_data: dict[str, Any] = {}
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch data from Geist PDU."""
@@ -44,15 +45,21 @@ class GeistPDUDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         payload = {"username": username, "password": password, "cmd": "get"}
 
         try:
-            async with async_timeout.timeout(10):
-                # Run requests in parallel to save time
-                sys_task = session.post(f"{base_url}/api/sys", json=payload)
-                dev_task = session.post(f"{base_url}/api/dev", json=payload)
+            async with async_timeout.timeout(15):
+                tasks = []
+                # Only fetch sys if not already fetched
+                if not self.device_info:
+                    tasks.append(session.post(f"{base_url}/api/sys", json=payload))
+                else:
+                    tasks.append(asyncio.sleep(0)) # placeholder
 
-                responses = await asyncio.gather(sys_task, dev_task, return_exceptions=True)
+                tasks.append(session.post(f"{base_url}/api/dev", json=payload))
+                tasks.append(session.post(f"{base_url}/api/state", json=payload))
+
+                responses = await asyncio.gather(*tasks, return_exceptions=True)
 
                 # Handle sys response
-                if not isinstance(responses[0], Exception) and responses[0].status == HTTPStatus.OK:
+                if not self.device_info and not isinstance(responses[0], Exception) and responses[0].status == HTTPStatus.OK:
                     sys_json = await responses[0].json()
                     if sys_json.get("status") != "fail":
                         self.device_info = sys_json.get("data", {})
@@ -63,21 +70,44 @@ class GeistPDUDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     raise dev_resp
 
                 if dev_resp.status != HTTPStatus.OK:
-                    raise UpdateFailed(f"HTTP error: {dev_resp.status}")
+                    raise UpdateFailed(f"HTTP error fetching dev: {dev_resp.status}")
 
-                res_json = await dev_resp.json()
-                if res_json.get("status") == "fail":
-                    raise UpdateFailed(f"API failure: {res_json.get('message')}")
+                dev_json = await dev_resp.json()
+                if dev_json.get("status") == "fail":
+                    raise UpdateFailed(f"API failure fetching dev: {dev_json.get('message')}")
 
-                data = res_json.get("data", {})
-                if not data:
-                    raise UpdateFailed("No data returned")
+                dev_data = dev_json.get("data", {})
+                if not dev_data:
+                    raise UpdateFailed("No device data returned")
 
-                # The data is keyed by device ID
                 if not self.device_id:
-                    self.device_id = next(iter(data.keys()))
+                    self.device_id = next(iter(dev_data.keys()))
 
-                return data
+                # Handle state response
+                state_resp = responses[2]
+                state_data = {}
+                if not isinstance(state_resp, Exception) and state_resp.status == HTTPStatus.OK:
+                    state_json = await state_resp.json()
+                    if state_json.get("status") != "fail":
+                        state_data = state_json.get("data", {})
+
+                # If alarms/warnings active, fetch triggers
+                warn_count = state_data.get("warnCount", 0)
+                alarm_count = state_data.get("alarmCount", 0)
+
+                if warn_count > 0 or alarm_count > 0:
+                    trigger_resp = await session.post(f"{base_url}/api/alarm/trigger", json=payload)
+                    if trigger_resp.status == HTTPStatus.OK:
+                        trigger_json = await trigger_resp.json()
+                        self.alarm_data = trigger_json.get("data", {})
+                else:
+                    self.alarm_data = {}
+
+                return {
+                    "dev": dev_data,
+                    "state": state_data,
+                    "alarms": self.alarm_data,
+                }
         except (asyncio.TimeoutError, async_timeout.TimeoutError) as err:
             raise UpdateFailed("Timeout communicating with Geist PDU") from err
         except Exception as err:

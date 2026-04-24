@@ -18,7 +18,7 @@ class GeistPDUEntity(CoordinatorEntity[GeistPDUDataUpdateCoordinator]):
         super().__init__(coordinator)
         device_id = coordinator.device_id
         sys_info = coordinator.device_info
-        dev_data = coordinator.data.get(device_id, {})
+        dev_data = coordinator.data.get("dev", {}).get(device_id, {})
 
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, device_id)},
@@ -39,7 +39,7 @@ class GeistPDUOutletEntity(GeistPDUEntity):
         self._outlet_id = outlet_id
         device_id = coordinator.device_id
 
-        outlet_data = coordinator.data.get(device_id, {}).get("outlet", {}).get(outlet_id, {})
+        outlet_data = coordinator.data.get("dev", {}).get(device_id, {}).get("outlet", {}).get(outlet_id, {})
         label = outlet_data.get("label", f"Outlet {int(outlet_id) + 1}")
 
         # Sub-device for the outlet
