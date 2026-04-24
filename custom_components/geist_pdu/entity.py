@@ -16,12 +16,38 @@ class GeistPDUEntity(CoordinatorEntity[GeistPDUDataUpdateCoordinator]):
     def __init__(self, coordinator: GeistPDUDataUpdateCoordinator) -> None:
         """Initialize the entity."""
         super().__init__(coordinator)
-        device_info = coordinator.device_info
+        device_id = coordinator.device_id
+        sys_info = coordinator.device_info
+        dev_data = coordinator.data.get(device_id, {})
+
+        # Main PDU Device Info
         self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, coordinator.device_id)},
-            name=device_info.get("label", "Geist PDU"),
+            identifiers={(DOMAIN, device_id)},
+            name=dev_data.get("label", sys_info.get("label", "Geist PDU")),
             manufacturer="Geist",
-            model=device_info.get("model", "Upgradable rPDU"),
-            sw_version=device_info.get("version"),
-            serial_number=device_info.get("serialNumber"),
+            model=sys_info.get("model", "Upgradable rPDU"),
+            sw_version=sys_info.get("version"),
+            serial_number=sys_info.get("serialNumber"),
+            configuration_url=f"https://{coordinator.entry.data['host']}",
+        )
+
+class GeistPDUOutletEntity(GeistPDUEntity):
+    """Base class for Geist PDU outlet entities."""
+
+    def __init__(self, coordinator: GeistPDUDataUpdateCoordinator, outlet_id: str) -> None:
+        """Initialize the outlet entity."""
+        super().__init__(coordinator)
+        self._outlet_id = outlet_id
+        device_id = coordinator.device_id
+
+        outlet_data = coordinator.data.get(device_id, {}).get("outlet", {}).get(outlet_id, {})
+        label = outlet_data.get("label", f"Outlet {int(outlet_id) + 1}")
+
+        # Sub-device for the outlet
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, f"{device_id}_outlet_{outlet_id}")},
+            name=label,
+            manufacturer="Geist",
+            model="PDU Outlet",
+            via_device=(DOMAIN, device_id),
         )

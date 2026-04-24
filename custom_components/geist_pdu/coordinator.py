@@ -1,6 +1,7 @@
 """Data update coordinator for Geist PDU."""
 from __future__ import annotations
 
+import asyncio
 from http import HTTPStatus
 from typing import TYPE_CHECKING, Any
 
@@ -37,28 +38,30 @@ class GeistPDUDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self.hass, verify_ssl=self.entry.data.get(CONF_VERIFY_SSL, False)
         )
         host = self.entry.data[CONF_HOST]
-
-        # Use credentials from config entry
         username = self.entry.data[CONF_USERNAME]
         password = self.entry.data[CONF_PASSWORD]
 
+        payload = {"username": username, "password": password, "cmd": "get"}
+
         try:
             async with async_timeout.timeout(10):
-                # 1. Fetch system info for device metadata (model, SN)
-                sys_resp = await session.post(
-                    f"https://{host}/api/sys",
-                    json={"username": username, "password": password, "cmd": "get"}
-                )
-                if sys_resp.status == HTTPStatus.OK:
-                    sys_json = await sys_resp.json()
+                # Run requests in parallel to save time
+                sys_task = session.post(f"https://{host}/api/sys", json=payload)
+                dev_task = session.post(f"https://{host}/api/dev", json=payload)
+
+                responses = await asyncio.gather(sys_task, dev_task, return_exceptions=True)
+
+                # Handle sys response
+                if not isinstance(responses[0], Exception) and responses[0].status == HTTPStatus.OK:
+                    sys_json = await responses[0].json()
                     if sys_json.get("status") != "fail":
                         self.device_info = sys_json.get("data", {})
 
-                # 2. Fetch full device dump
-                dev_resp = await session.post(
-                    f"https://{host}/api/dev",
-                    json={"username": username, "password": password, "cmd": "get"}
-                )
+                # Handle dev response
+                dev_resp = responses[1]
+                if isinstance(dev_resp, Exception):
+                    raise dev_resp
+
                 if dev_resp.status != HTTPStatus.OK:
                     raise UpdateFailed(f"HTTP error: {dev_resp.status}")
 
@@ -70,11 +73,13 @@ class GeistPDUDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 if not data:
                     raise UpdateFailed("No data returned")
 
-                # The data is keyed by device ID (e.g. A1F8340B851900C3)
+                # The data is keyed by device ID
                 if not self.device_id:
                     self.device_id = next(iter(data.keys()))
 
                 return data
+        except (asyncio.TimeoutError, async_timeout.TimeoutError) as err:
+            raise UpdateFailed("Timeout communicating with Geist PDU") from err
         except Exception as err:
             if isinstance(err, UpdateFailed):
                 raise
@@ -111,8 +116,7 @@ class GeistPDUDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 if res_json.get("status") == "fail":
                     raise HomeAssistantError(f"API failure sending {action} to outlet {outlet_id}: {res_json.get('message')}")
 
-                # Refresh data to reflect changes
                 await self.async_request_refresh()
 
-        except (aiohttp.ClientError, async_timeout.TimeoutError) as err:
+        except (aiohttp.ClientError, asyncio.TimeoutError, async_timeout.TimeoutError) as err:
             raise HomeAssistantError(f"Communication error sending {action} to outlet {outlet_id}: {err}") from err
