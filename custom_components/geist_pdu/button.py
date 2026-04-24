@@ -4,6 +4,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from homeassistant.components.button import ButtonEntity
+from homeassistant.const import EntityCategory
 
 from .entity import GeistPDUOutletEntity
 
@@ -39,6 +40,7 @@ class GeistPDUOutletButton(GeistPDUOutletEntity, ButtonEntity):
     """Representation of a Geist PDU outlet control button."""
 
     _attr_entity_registry_enabled_default = False
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
 
     def __init__(self, coordinator: GeistPDUDataUpdateCoordinator, outlet_id: str, action: str) -> None:
         """Initialize the button."""

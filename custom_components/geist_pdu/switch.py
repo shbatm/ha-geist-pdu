@@ -40,7 +40,7 @@ class GeistPDUOutletSwitch(GeistPDUOutletEntity, SwitchEntity):
         """Initialize the switch."""
         super().__init__(coordinator, outlet_id)
         self._attr_unique_id = f"{coordinator.device_id}_outlet_{outlet_id}_switch"
-        self._attr_name = None  # Use device name (outlet label)
+        self._attr_name = "Power"
 
     @property
     def is_on(self) -> bool | None:
