@@ -7,7 +7,7 @@
             "command": "/bin/bash",
             "args": [
                 "-lc",
-                "(if [ -x /opt/venv/bin/hass ]; then /opt/venv/bin/hass -c /workspaces/go2rtc-shared-cam/.homeassistant; else python3 -m homeassistant --config /workspaces/go2rtc-shared-cam/.homeassistant; fi)"
+                "(if [ -x /opt/venv/bin/hass ]; then /opt/venv/bin/hass -c /workspaces/ha-geist-pdu/.homeassistant; else python3 -m homeassistant --config /workspaces/ha-geist-pdu/.homeassistant; fi)"
             ],
             "problemMatcher": [],
             "isBackground": false,
@@ -32,7 +32,7 @@
             "command": "/bin/bash",
             "args": [
                 "-lc",
-                "if [ -f .venv/bin/activate ]; then source .venv/bin/activate; elif [ -f /opt/venv/bin/activate ]; then source /opt/venv/bin/activate; fi && if [ -x \".venv/bin/hass\" ]; then .venv/bin/hass -c /workspaces/go2rtc-shared-cam/.homeassistant; elif [ -x /opt/venv/bin/hass ]; then /opt/venv/bin/hass -c /workspaces/go2rtc-shared-cam/.homeassistant; else python3 -m homeassistant --config /workspaces/go2rtc-shared-cam/.homeassistant; fi"
+                "if [ -f .venv/bin/activate ]; then source .venv/bin/activate; elif [ -f /opt/venv/bin/activate ]; then source /opt/venv/bin/activate; fi && if [ -x \".venv/bin/hass\" ]; then .venv/bin/hass -c /workspaces/ha-geist-pdu/.homeassistant; elif [ -x /opt/venv/bin/hass ]; then /opt/venv/bin/hass -c /workspaces/ha-geist-pdu/.homeassistant; else python3 -m homeassistant --config /workspaces/ha-geist-pdu/.homeassistant; fi"
             ],
             "problemMatcher": [],
             "isBackground": false,
