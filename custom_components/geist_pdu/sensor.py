@@ -22,7 +22,7 @@ from .entity import GeistPDUEntity, GeistPDUOutletEntity
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
-    from homeassistant.helpers.entity_platform import AddEntitiesCallback
+    from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
     from . import GeistPDUConfigEntry
     from .coordinator import GeistPDUDataUpdateCoordinator
@@ -38,7 +38,7 @@ if TYPE_CHECKING:
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: GeistPDUConfigEntry,
-    async_add_entities: AddEntitiesCallback,
+    async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up Geist PDU sensors based on a config entry."""
     coordinator = entry.runtime_data
