@@ -8,7 +8,9 @@ from typing import TYPE_CHECKING, Any
 import aiohttp
 import async_timeout
 from homeassistant.const import CONF_PASSWORD, CONF_URL, CONF_USERNAME, CONF_VERIFY_SSL
+from homeassistant.core import callback
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
@@ -32,6 +34,25 @@ class GeistPDUDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.device_id: str | None = None
         self.device_info: dict[str, Any] = {}
         self.alarm_data: dict[str, Any] = {}
+        self.pdu_device_entry_id: str | None = None
+
+    @callback
+    def async_register_pdu_device(self) -> None:
+        """Register the PDU device, so outlet devices can link to it by id."""
+        if not self.device_id:
+            raise HomeAssistantError("Device ID not populated")
+        dev_data = self.data.get("dev", {}).get(self.device_id, {})
+        device = dr.async_get(self.hass).async_get_or_create(
+            config_entry_id=self.entry.entry_id,
+            identifiers={(DOMAIN, self.device_id)},
+            name=dev_data.get("label", self.device_info.get("label", "Geist PDU")),
+            manufacturer="Geist",
+            model=self.device_info.get("model", "Upgradable rPDU"),
+            sw_version=self.device_info.get("version"),
+            serial_number=self.device_info.get("serialNumber"),
+            configuration_url=self.entry.data[CONF_URL],
+        )
+        self.pdu_device_entry_id = device.id
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch data from Geist PDU."""

@@ -21,6 +21,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: GeistPDUConfigEntry) -> 
 
     # Perform first refresh
     await coordinator.async_config_entry_first_refresh()
+    coordinator.async_register_pdu_device()
 
     entry.runtime_data = coordinator
 
