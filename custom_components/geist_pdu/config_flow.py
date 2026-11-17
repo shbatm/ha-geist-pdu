@@ -10,7 +10,7 @@ import async_timeout
 from homeassistant import config_entries
 from homeassistant.const import CONF_PASSWORD, CONF_URL, CONF_USERNAME, CONF_VERIFY_SSL
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-import voluptuous as vol
+import probatio
 
 from .const import DOMAIN, LOGGER
 
@@ -18,12 +18,12 @@ if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
     from homeassistant.data_entry_flow import FlowResult
 
-STEP_USER_DATA_SCHEMA = vol.Schema(
+STEP_USER_DATA_SCHEMA = probatio.Schema(
     {
-        vol.Required(CONF_URL): str,
-        vol.Required(CONF_USERNAME): str,
-        vol.Required(CONF_PASSWORD): str,
-        vol.Optional(CONF_VERIFY_SSL, default=False): bool,
+        probatio.Required(CONF_URL): str,
+        probatio.Required(CONF_USERNAME): str,
+        probatio.Required(probatio.Secret(CONF_PASSWORD)): str,
+        probatio.Optional(CONF_VERIFY_SSL, default=False): bool,
     }
 )
 
