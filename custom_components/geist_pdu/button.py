@@ -1,4 +1,5 @@
 """Support for Geist PDU buttons."""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -10,15 +11,16 @@ from .entity import GeistPDUOutletEntity
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
-    from homeassistant.helpers.entity_platform import AddEntitiesCallback
+    from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
     from . import GeistPDUConfigEntry
     from .coordinator import GeistPDUDataUpdateCoordinator
 
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: GeistPDUConfigEntry,
-    async_add_entities: AddEntitiesCallback,
+    async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up Geist PDU buttons based on a config entry."""
     coordinator = entry.runtime_data
@@ -36,17 +38,22 @@ async def async_setup_entry(
 
     async_add_entities(entities)
 
+
 class GeistPDUOutletButton(GeistPDUOutletEntity, ButtonEntity):
     """Representation of a Geist PDU outlet control button."""
 
     _attr_entity_registry_enabled_default = False
     _attr_entity_category = EntityCategory.DIAGNOSTIC
 
-    def __init__(self, coordinator: GeistPDUDataUpdateCoordinator, outlet_id: str, action: str) -> None:
+    def __init__(
+        self, coordinator: GeistPDUDataUpdateCoordinator, outlet_id: str, action: str
+    ) -> None:
         """Initialize the button."""
         super().__init__(coordinator, outlet_id)
         self._action = action
-        self._attr_unique_id = f"{coordinator.device_id}_outlet_{outlet_id}_{action}_button"
+        self._attr_unique_id = (
+            f"{coordinator.device_id}_outlet_{outlet_id}_{action}_button"
+        )
 
         if action == "reboot":
             self._attr_name = "Reboot"

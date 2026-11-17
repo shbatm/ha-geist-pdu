@@ -1,4 +1,5 @@
 """Constants for the Geist PDU integration."""
+
 from datetime import timedelta
 import logging
 
