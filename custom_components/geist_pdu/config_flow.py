@@ -1,4 +1,5 @@
 """Config flow for Geist PDU integration."""
+
 from __future__ import annotations
 
 import asyncio
@@ -6,26 +7,26 @@ from http import HTTPStatus
 from typing import TYPE_CHECKING, Any
 
 import aiohttp
-import async_timeout
-from homeassistant import config_entries
+from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
 from homeassistant.const import CONF_PASSWORD, CONF_URL, CONF_USERNAME, CONF_VERIFY_SSL
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-import voluptuous as vol
+import probatio
 
 from .const import DOMAIN, LOGGER
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
-    from homeassistant.data_entry_flow import FlowResult
 
-STEP_USER_DATA_SCHEMA = vol.Schema(
+STEP_USER_DATA_SCHEMA = probatio.Schema(
     {
-        vol.Required(CONF_URL): str,
-        vol.Required(CONF_USERNAME): str,
-        vol.Required(CONF_PASSWORD): str,
-        vol.Optional(CONF_VERIFY_SSL, default=False): bool,
+        probatio.Required(CONF_URL): str,
+        probatio.Required(CONF_USERNAME): str,
+        probatio.Required(probatio.Secret(CONF_PASSWORD)): str,
+        probatio.Optional(CONF_VERIFY_SSL, default=False): bool,
     }
 )
+
 
 async def _validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
     """Validate the user input allows us to connect."""
@@ -44,42 +45,44 @@ async def _validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str
     }
 
     try:
-        async with async_timeout.timeout(10):
-            response = await session.post(endpoint, json=payload)
+        async with (
+            asyncio.timeout(10),
+            session.post(endpoint, json=payload) as response,
+        ):
             if response.status == HTTPStatus.UNAUTHORIZED:
                 raise InvalidAuth
             if response.status != HTTPStatus.OK:
                 raise CannotConnect
-
             res_json = await response.json()
-            if res_json.get("status") == "fail":
-                raise InvalidAuth
-
-            device_data = res_json.get("data", {})
-            if not device_data:
-                raise CannotConnect
-
-            device_id = next(iter(device_data.keys()))
-            device_info = device_data[device_id]
-
-            return {
-                "title": device_info.get("label", device_info.get("name", url)),
-                "unique_id": device_id,
-                "url": url,
-            }
-
-    except (aiohttp.ClientError, asyncio.TimeoutError, async_timeout.TimeoutError) as err:
+    except (aiohttp.ClientError, TimeoutError) as err:
         LOGGER.error("Error connecting to Geist PDU: %s", err)
         raise CannotConnect from err
 
-class GeistPDUConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+    if res_json.get("status") == "fail":
+        raise InvalidAuth
+
+    device_data = res_json.get("data", {})
+    if not device_data:
+        raise CannotConnect
+
+    device_id = next(iter(device_data.keys()))
+    device_info = device_data[device_id]
+
+    return {
+        "title": device_info.get("label", device_info.get("name", url)),
+        "unique_id": device_id,
+        "url": url,
+    }
+
+
+class GeistPDUConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Geist PDU."""
 
     VERSION = 1
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Handle the initial step."""
         errors: dict[str, str] = {}
         if user_input is not None:
@@ -104,8 +107,10 @@ class GeistPDUConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
-class CannotConnect(config_entries.HomeAssistantError):
+
+class CannotConnect(HomeAssistantError):
     """Error to indicate we cannot connect."""
 
-class InvalidAuth(config_entries.HomeAssistantError):
+
+class InvalidAuth(HomeAssistantError):
     """Error to indicate there is invalid auth."""
