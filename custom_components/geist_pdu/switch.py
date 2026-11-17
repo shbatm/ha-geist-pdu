@@ -1,4 +1,5 @@
 """Support for Geist PDU switches."""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
@@ -14,6 +15,7 @@ if TYPE_CHECKING:
     from . import GeistPDUConfigEntry
     from .coordinator import GeistPDUDataUpdateCoordinator
 
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: GeistPDUConfigEntry,
@@ -28,15 +30,15 @@ async def async_setup_entry(
     dev_data = coordinator.data.get("dev", {}).get(device_id, {})
     outlets = dev_data.get("outlet", {})
 
-    async_add_entities([
-        GeistPDUOutletSwitch(coordinator, o_idx)
-        for o_idx in outlets
-    ])
+    async_add_entities([GeistPDUOutletSwitch(coordinator, o_idx) for o_idx in outlets])
+
 
 class GeistPDUOutletSwitch(GeistPDUOutletEntity, SwitchEntity):
     """Representation of a Geist PDU outlet switch."""
 
-    def __init__(self, coordinator: GeistPDUDataUpdateCoordinator, outlet_id: str) -> None:
+    def __init__(
+        self, coordinator: GeistPDUDataUpdateCoordinator, outlet_id: str
+    ) -> None:
         """Initialize the switch."""
         super().__init__(coordinator, outlet_id)
         self._attr_unique_id = f"{coordinator.device_id}_outlet_{outlet_id}_switch"

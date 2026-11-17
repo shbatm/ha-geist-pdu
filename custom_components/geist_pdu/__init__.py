@@ -1,4 +1,5 @@
 """The Geist PDU integration."""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, TypeAlias
@@ -15,6 +16,7 @@ PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.SWITCH, Platform.BUTTON]
 
 GeistPDUConfigEntry: TypeAlias = ConfigEntry[GeistPDUDataUpdateCoordinator]
 
+
 async def async_setup_entry(hass: HomeAssistant, entry: GeistPDUConfigEntry) -> None:
     """Set up Geist PDU from a config entry."""
     coordinator = GeistPDUDataUpdateCoordinator(hass, entry)
@@ -26,6 +28,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: GeistPDUConfigEntry) -> 
     entry.runtime_data = coordinator
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+
 
 async def async_unload_entry(hass: HomeAssistant, entry: GeistPDUConfigEntry) -> None:
     """Unload a config entry."""

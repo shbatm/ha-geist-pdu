@@ -1,4 +1,5 @@
 """Support for Geist PDU sensors."""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
@@ -35,6 +36,7 @@ if TYPE_CHECKING:
 # 10: Power Factor (%)
 # 11: Energy (kWh)
 
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: GeistPDUConfigEntry,
@@ -50,141 +52,228 @@ async def async_setup_entry(
     dev_data = coordinator.data.get("dev", {}).get(device_id, {})
 
     # --- System Alarms/Warnings ---
-    entities.extend([
-        GeistPDUSystemSensor(coordinator, "alarmCount", SensorEntityDescription(
-            key=f"{device_id}_alarm_count",
-            name="Alarms",
-            icon="mdi:alert",
-            state_class=SensorStateClass.MEASUREMENT,
-        )),
-        GeistPDUSystemSensor(coordinator, "warnCount", SensorEntityDescription(
-            key=f"{device_id}_warning_count",
-            name="Warnings",
-            icon="mdi:alert-outline",
-            state_class=SensorStateClass.MEASUREMENT,
-        )),
-    ])
+    entities.extend(
+        [
+            GeistPDUSystemSensor(
+                coordinator,
+                "alarmCount",
+                SensorEntityDescription(
+                    key=f"{device_id}_alarm_count",
+                    name="Alarms",
+                    icon="mdi:alert",
+                    state_class=SensorStateClass.MEASUREMENT,
+                ),
+            ),
+            GeistPDUSystemSensor(
+                coordinator,
+                "warnCount",
+                SensorEntityDescription(
+                    key=f"{device_id}_warning_count",
+                    name="Warnings",
+                    icon="mdi:alert-outline",
+                    state_class=SensorStateClass.MEASUREMENT,
+                ),
+            ),
+        ]
+    )
 
     # --- Totals ---
     entity_data = dev_data.get("entity", {})
     if "total0" in entity_data:
-        entities.extend([
-            GeistPDUSensor(coordinator, "total0", "0", SensorEntityDescription(
-                key=f"{device_id}_total_power",
-                name="Total Real Power",
-                native_unit_of_measurement=UnitOfPower.WATT,
-                device_class=SensorDeviceClass.POWER,
-                state_class=SensorStateClass.MEASUREMENT,
-            )),
-            GeistPDUSensor(coordinator, "total0", "1", SensorEntityDescription(
-                key=f"{device_id}_total_apparent_power",
-                name="Total Apparent Power",
-                native_unit_of_measurement=UnitOfApparentPower.VOLT_AMPERE,
-                device_class=SensorDeviceClass.APPARENT_POWER,
-                state_class=SensorStateClass.MEASUREMENT,
-            )),
-            GeistPDUSensor(coordinator, "total0", "2", SensorEntityDescription(
-                key=f"{device_id}_total_power_factor",
-                name="Total Power Factor",
-                native_unit_of_measurement=PERCENTAGE,
-                device_class=SensorDeviceClass.POWER_FACTOR,
-                state_class=SensorStateClass.MEASUREMENT,
-            )),
-            GeistPDUSensor(coordinator, "total0", "3", SensorEntityDescription(
-                key=f"{device_id}_total_energy",
-                name="Total Energy",
-                native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
-                device_class=SensorDeviceClass.ENERGY,
-                state_class=SensorStateClass.TOTAL_INCREASING,
-            )),
-        ])
+        entities.extend(
+            [
+                GeistPDUSensor(
+                    coordinator,
+                    "total0",
+                    "0",
+                    SensorEntityDescription(
+                        key=f"{device_id}_total_power",
+                        name="Total Real Power",
+                        native_unit_of_measurement=UnitOfPower.WATT,
+                        device_class=SensorDeviceClass.POWER,
+                        state_class=SensorStateClass.MEASUREMENT,
+                    ),
+                ),
+                GeistPDUSensor(
+                    coordinator,
+                    "total0",
+                    "1",
+                    SensorEntityDescription(
+                        key=f"{device_id}_total_apparent_power",
+                        name="Total Apparent Power",
+                        native_unit_of_measurement=UnitOfApparentPower.VOLT_AMPERE,
+                        device_class=SensorDeviceClass.APPARENT_POWER,
+                        state_class=SensorStateClass.MEASUREMENT,
+                    ),
+                ),
+                GeistPDUSensor(
+                    coordinator,
+                    "total0",
+                    "2",
+                    SensorEntityDescription(
+                        key=f"{device_id}_total_power_factor",
+                        name="Total Power Factor",
+                        native_unit_of_measurement=PERCENTAGE,
+                        device_class=SensorDeviceClass.POWER_FACTOR,
+                        state_class=SensorStateClass.MEASUREMENT,
+                    ),
+                ),
+                GeistPDUSensor(
+                    coordinator,
+                    "total0",
+                    "3",
+                    SensorEntityDescription(
+                        key=f"{device_id}_total_energy",
+                        name="Total Energy",
+                        native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
+                        device_class=SensorDeviceClass.ENERGY,
+                        state_class=SensorStateClass.TOTAL_INCREASING,
+                    ),
+                ),
+            ]
+        )
 
     # --- Phase ---
     if "phase0" in entity_data:
-        entities.extend([
-            GeistPDUSensor(coordinator, "phase0", "0", SensorEntityDescription(
-                key=f"{device_id}_voltage",
-                name="Voltage",
-                native_unit_of_measurement=UnitOfElectricPotential.VOLT,
-                device_class=SensorDeviceClass.VOLTAGE,
-                state_class=SensorStateClass.MEASUREMENT,
-            )),
-            GeistPDUSensor(coordinator, "phase0", "4", SensorEntityDescription(
-                key=f"{device_id}_current",
-                name="Current",
-                native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
-                device_class=SensorDeviceClass.CURRENT,
-                state_class=SensorStateClass.MEASUREMENT,
-            )),
-        ])
+        entities.extend(
+            [
+                GeistPDUSensor(
+                    coordinator,
+                    "phase0",
+                    "0",
+                    SensorEntityDescription(
+                        key=f"{device_id}_voltage",
+                        name="Voltage",
+                        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+                        device_class=SensorDeviceClass.VOLTAGE,
+                        state_class=SensorStateClass.MEASUREMENT,
+                    ),
+                ),
+                GeistPDUSensor(
+                    coordinator,
+                    "phase0",
+                    "4",
+                    SensorEntityDescription(
+                        key=f"{device_id}_current",
+                        name="Current",
+                        native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
+                        device_class=SensorDeviceClass.CURRENT,
+                        state_class=SensorStateClass.MEASUREMENT,
+                    ),
+                ),
+            ]
+        )
 
     # --- Breakers ---
     for ent_key, ent_val in entity_data.items():
         if ent_key.startswith("breaker") and "measurement" in ent_val:
             entities.append(
-                GeistPDUSensor(coordinator, ent_key, "4", SensorEntityDescription(
-                    key=f"{device_id}_{ent_key}_current",
-                    name=f"Circuit {ent_key.replace('breaker', '')} Current",
-                    native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
-                    device_class=SensorDeviceClass.CURRENT,
-                    state_class=SensorStateClass.MEASUREMENT,
-                ))
+                GeistPDUSensor(
+                    coordinator,
+                    ent_key,
+                    "4",
+                    SensorEntityDescription(
+                        key=f"{device_id}_{ent_key}_current",
+                        name=f"Circuit {ent_key.replace('breaker', '')} Current",
+                        native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
+                        device_class=SensorDeviceClass.CURRENT,
+                        state_class=SensorStateClass.MEASUREMENT,
+                    ),
+                )
             )
 
     # --- Outlets ---
     outlets = dev_data.get("outlet", {})
     for o_idx in outlets:
-        entities.extend([
-            GeistPDUOutletSensor(coordinator, o_idx, "8", SensorEntityDescription(
-                key=f"{device_id}_outlet_{o_idx}_power",
-                name="Real Power",
-                native_unit_of_measurement=UnitOfPower.WATT,
-                device_class=SensorDeviceClass.POWER,
-                state_class=SensorStateClass.MEASUREMENT,
-            )),
-            GeistPDUOutletSensor(coordinator, o_idx, "9", SensorEntityDescription(
-                key=f"{device_id}_outlet_{o_idx}_apparent_power",
-                name="Apparent Power",
-                native_unit_of_measurement=UnitOfApparentPower.VOLT_AMPERE,
-                device_class=SensorDeviceClass.APPARENT_POWER,
-                state_class=SensorStateClass.MEASUREMENT,
-            )),
-            GeistPDUOutletSensor(coordinator, o_idx, "10", SensorEntityDescription(
-                key=f"{device_id}_outlet_{o_idx}_power_factor",
-                name="Power Factor",
-                native_unit_of_measurement=PERCENTAGE,
-                device_class=SensorDeviceClass.POWER_FACTOR,
-                state_class=SensorStateClass.MEASUREMENT,
-            )),
-            GeistPDUOutletSensor(coordinator, o_idx, "11", SensorEntityDescription(
-                key=f"{device_id}_outlet_{o_idx}_energy",
-                name="Energy",
-                native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
-                device_class=SensorDeviceClass.ENERGY,
-                state_class=SensorStateClass.TOTAL_INCREASING,
-            )),
-            GeistPDUOutletSensor(coordinator, o_idx, "0", SensorEntityDescription(
-                key=f"{device_id}_outlet_{o_idx}_voltage",
-                name="Voltage",
-                native_unit_of_measurement=UnitOfElectricPotential.VOLT,
-                device_class=SensorDeviceClass.VOLTAGE,
-                state_class=SensorStateClass.MEASUREMENT,
-            )),
-            GeistPDUOutletSensor(coordinator, o_idx, "4", SensorEntityDescription(
-                key=f"{device_id}_outlet_{o_idx}_current",
-                name="Current",
-                native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
-                device_class=SensorDeviceClass.CURRENT,
-                state_class=SensorStateClass.MEASUREMENT,
-            )),
-        ])
+        entities.extend(
+            [
+                GeistPDUOutletSensor(
+                    coordinator,
+                    o_idx,
+                    "8",
+                    SensorEntityDescription(
+                        key=f"{device_id}_outlet_{o_idx}_power",
+                        name="Real Power",
+                        native_unit_of_measurement=UnitOfPower.WATT,
+                        device_class=SensorDeviceClass.POWER,
+                        state_class=SensorStateClass.MEASUREMENT,
+                    ),
+                ),
+                GeistPDUOutletSensor(
+                    coordinator,
+                    o_idx,
+                    "9",
+                    SensorEntityDescription(
+                        key=f"{device_id}_outlet_{o_idx}_apparent_power",
+                        name="Apparent Power",
+                        native_unit_of_measurement=UnitOfApparentPower.VOLT_AMPERE,
+                        device_class=SensorDeviceClass.APPARENT_POWER,
+                        state_class=SensorStateClass.MEASUREMENT,
+                    ),
+                ),
+                GeistPDUOutletSensor(
+                    coordinator,
+                    o_idx,
+                    "10",
+                    SensorEntityDescription(
+                        key=f"{device_id}_outlet_{o_idx}_power_factor",
+                        name="Power Factor",
+                        native_unit_of_measurement=PERCENTAGE,
+                        device_class=SensorDeviceClass.POWER_FACTOR,
+                        state_class=SensorStateClass.MEASUREMENT,
+                    ),
+                ),
+                GeistPDUOutletSensor(
+                    coordinator,
+                    o_idx,
+                    "11",
+                    SensorEntityDescription(
+                        key=f"{device_id}_outlet_{o_idx}_energy",
+                        name="Energy",
+                        native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
+                        device_class=SensorDeviceClass.ENERGY,
+                        state_class=SensorStateClass.TOTAL_INCREASING,
+                    ),
+                ),
+                GeistPDUOutletSensor(
+                    coordinator,
+                    o_idx,
+                    "0",
+                    SensorEntityDescription(
+                        key=f"{device_id}_outlet_{o_idx}_voltage",
+                        name="Voltage",
+                        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+                        device_class=SensorDeviceClass.VOLTAGE,
+                        state_class=SensorStateClass.MEASUREMENT,
+                    ),
+                ),
+                GeistPDUOutletSensor(
+                    coordinator,
+                    o_idx,
+                    "4",
+                    SensorEntityDescription(
+                        key=f"{device_id}_outlet_{o_idx}_current",
+                        name="Current",
+                        native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
+                        device_class=SensorDeviceClass.CURRENT,
+                        state_class=SensorStateClass.MEASUREMENT,
+                    ),
+                ),
+            ]
+        )
 
     async_add_entities(entities)
+
 
 class GeistPDUSystemSensor(GeistPDUEntity, SensorEntity):
     """Representation of a Geist PDU system-wide sensor."""
 
-    def __init__(self, coordinator: GeistPDUDataUpdateCoordinator, state_key: str, description: SensorEntityDescription) -> None:
+    def __init__(
+        self,
+        coordinator: GeistPDUDataUpdateCoordinator,
+        state_key: str,
+        description: SensorEntityDescription,
+    ) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator)
         self.entity_description = description
@@ -211,6 +300,7 @@ class GeistPDUSystemSensor(GeistPDUEntity, SensorEntity):
             return None
 
         return {"triggers": relevant}
+
 
 class GeistPDUSensor(GeistPDUEntity, SensorEntity):
     """Representation of a Geist PDU sensor."""
@@ -241,13 +331,16 @@ class GeistPDUSensor(GeistPDUEntity, SensorEntity):
         if not val_data:
             return None
 
-        val = val_data.get("measurement", {}).get(self._measurement_key, {}).get("value")
+        val = (
+            val_data.get("measurement", {}).get(self._measurement_key, {}).get("value")
+        )
         if val is not None:
             try:
                 return float(val)
             except (ValueError, TypeError):
                 return None
         return None
+
 
 class GeistPDUOutletSensor(GeistPDUOutletEntity, SensorEntity):
     """Representation of a Geist PDU outlet sensor."""
@@ -277,7 +370,9 @@ class GeistPDUOutletSensor(GeistPDUOutletEntity, SensorEntity):
         if not val_data:
             return None
 
-        val = val_data.get("measurement", {}).get(self._measurement_key, {}).get("value")
+        val = (
+            val_data.get("measurement", {}).get(self._measurement_key, {}).get("value")
+        )
         if val is not None:
             try:
                 return float(val)

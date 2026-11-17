@@ -1,4 +1,5 @@
 """Config flow for Geist PDU integration."""
+
 from __future__ import annotations
 
 import asyncio
@@ -25,6 +26,7 @@ STEP_USER_DATA_SCHEMA = probatio.Schema(
         probatio.Optional(CONF_VERIFY_SSL, default=False): bool,
     }
 )
+
 
 async def _validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
     """Validate the user input allows us to connect."""
@@ -72,6 +74,7 @@ async def _validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str
         "url": url,
     }
 
+
 class GeistPDUConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Geist PDU."""
 
@@ -104,8 +107,10 @@ class GeistPDUConfigFlow(ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
+
 class CannotConnect(HomeAssistantError):
     """Error to indicate we cannot connect."""
+
 
 class InvalidAuth(HomeAssistantError):
     """Error to indicate there is invalid auth."""

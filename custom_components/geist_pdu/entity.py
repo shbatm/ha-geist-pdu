@@ -1,4 +1,5 @@
 """Base entity for Geist PDU."""
+
 from __future__ import annotations
 
 from homeassistant.helpers.device_registry import DeviceInfo
@@ -21,16 +22,24 @@ class GeistPDUEntity(CoordinatorEntity[GeistPDUDataUpdateCoordinator]):
             identifiers={(DOMAIN, coordinator.device_id)},
         )
 
+
 class GeistPDUOutletEntity(GeistPDUEntity):
     """Base class for Geist PDU outlet entities."""
 
-    def __init__(self, coordinator: GeistPDUDataUpdateCoordinator, outlet_id: str) -> None:
+    def __init__(
+        self, coordinator: GeistPDUDataUpdateCoordinator, outlet_id: str
+    ) -> None:
         """Initialize the outlet entity."""
         super().__init__(coordinator)
         self._outlet_id = outlet_id
         device_id = coordinator.device_id
 
-        outlet_data = coordinator.data.get("dev", {}).get(device_id, {}).get("outlet", {}).get(outlet_id, {})
+        outlet_data = (
+            coordinator.data.get("dev", {})
+            .get(device_id, {})
+            .get("outlet", {})
+            .get(outlet_id, {})
+        )
         label = outlet_data.get("label", f"Outlet {int(outlet_id) + 1}")
 
         # Sub-device for the outlet

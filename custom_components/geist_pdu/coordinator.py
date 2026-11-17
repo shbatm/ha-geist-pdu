@@ -1,4 +1,5 @@
 """Data update coordinator for Geist PDU."""
+
 from __future__ import annotations
 
 import asyncio
@@ -72,9 +73,7 @@ class GeistPDUDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "cmd": cmd,
         }
 
-    async def _async_post(
-        self, path: str, payload: dict[str, Any]
-    ) -> tuple[int, Any]:
+    async def _async_post(self, path: str, payload: dict[str, Any]) -> tuple[int, Any]:
         """POST to the PDU API; return the status and, when OK, the JSON body."""
         url = f"{self.config_entry.data[CONF_URL]}{path}"
         async with self._session().post(url, json=payload) as response:
@@ -112,7 +111,9 @@ class GeistPDUDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 if dev_json is None:
                     raise UpdateFailed(f"HTTP error fetching dev: {dev_status}")
                 if dev_json.get("status") == "fail":
-                    raise UpdateFailed(f"API failure fetching dev: {dev_json.get('message')}")
+                    raise UpdateFailed(
+                        f"API failure fetching dev: {dev_json.get('message')}"
+                    )
 
                 dev_data = dev_json.get("data", {})
                 if not dev_data:
@@ -130,8 +131,13 @@ class GeistPDUDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     state_data = state_json.get("data", {})
 
                 # If alarms/warnings are active, fetch the triggers
-                if state_data.get("warnCount", 0) > 0 or state_data.get("alarmCount", 0) > 0:
-                    _, trigger_json = await self._async_post("/api/alarm/trigger", payload)
+                if (
+                    state_data.get("warnCount", 0) > 0
+                    or state_data.get("alarmCount", 0) > 0
+                ):
+                    _, trigger_json = await self._async_post(
+                        "/api/alarm/trigger", payload
+                    )
                     if trigger_json is not None:
                         self.alarm_data = trigger_json.get("data", {})
                 else:
@@ -163,11 +169,17 @@ class GeistPDUDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     f"/api/dev/{self.device_id}/outlet/{outlet_id}", payload
                 )
         except (aiohttp.ClientError, TimeoutError) as err:
-            raise HomeAssistantError(f"Communication error sending {action} to outlet {outlet_id}: {err}") from err
+            raise HomeAssistantError(
+                f"Communication error sending {action} to outlet {outlet_id}: {err}"
+            ) from err
 
         if res_json is None:
-            raise HomeAssistantError(f"HTTP error sending {action} to outlet {outlet_id}: {status}")
+            raise HomeAssistantError(
+                f"HTTP error sending {action} to outlet {outlet_id}: {status}"
+            )
         if res_json.get("status") == "fail":
-            raise HomeAssistantError(f"API failure sending {action} to outlet {outlet_id}: {res_json.get('message')}")
+            raise HomeAssistantError(
+                f"API failure sending {action} to outlet {outlet_id}: {res_json.get('message')}"
+            )
 
         await self.async_request_refresh()
